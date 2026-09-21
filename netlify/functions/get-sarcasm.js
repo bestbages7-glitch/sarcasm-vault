@@ -31,7 +31,7 @@ exports.handler = async function (event) {
     return {
       statusCode: 400,
       headers,
-      body: JSON.stringify({ error: "Invalid JSON format in request body" })
+      body: JSON.stringify({ error: "Invalid JSON in body" })
     };
   }
 
@@ -39,7 +39,7 @@ exports.handler = async function (event) {
     return {
       statusCode: 400,
       headers,
-      body: JSON.stringify({ error: "Порожній запит" })
+      body: JSON.stringify({ error: "Empty query" })
     };
   }
 
@@ -48,65 +48,87 @@ exports.handler = async function (event) {
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: "Відсутній GROQ_API_KEY у налаштуваннях" })
+      body: JSON.stringify({ error: "Missing GROQ_API_KEY" })
     };
   }
 
   const targetLang = language === 'uk' ? 'Ukrainian' : 'English';
 
-  const systemPrompt = `You are a world-class satirist and master of sharp wit.
-Generate 4 distinct, devastatingly clever, witty, and sarcastic comebacks suitable for the situation.
-Output language MUST strictly be ${targetLang}.
-Respond ONLY with a valid JSON object matching this exact schema:
-{
-  "comebacks": [
-    { "text": "дотепний панч тут", "tone": "Dry Wit" },
-    { "text": "дотепний панч тут", "tone": "Sharp Irony" },
-    { "text": "дотепний панч тут", "tone": "Passive-Aggressive" },
-    { "text": "дотепний панч тут", "tone": "Sarcastic" }
-  ]
-}`;
+  const systemPrompt = `You are an elite satirist. The user will provide an annoying or absurd situation.
+Return 4 biting, witty, sarcastic comebacks in ${targetLang}.
+Respond with a JSON object containing a "comebacks" array with "text" and "tone" fields.
+Available tones: "Dry Wit", "Sharp Irony", "Passive-Aggressive", "Sarcastic".`;
 
-  try {
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "llama-3.1-8b-instant",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: `Situation: ${query}` }
-        ],
-        temperature: 0.85,
-        response_format: { type: "json_object" }
-      })
-    });
+  // Ланцюжок моделей на випадок, якщо одна з них вимкнена або обмежена
+  const candidateModels = [
+    "llama-3.3-70b-versatile",
+    "llama-3.1-8b-instant",
+    "mixtral-8x7b-32768",
+    "gemma2-9b-it"
+  ];
 
-    if (!response.ok) {
-      const errText = await response.text();
-      return {
-        statusCode: response.status,
-        headers,
-        body: JSON.stringify({ error: errText })
-      };
+  let lastError = null;
+
+  for (const model of candidateModels) {
+    try {
+      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey.trim()}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: `Situation: ${query}` }
+          ],
+          temperature: 0.8,
+          response_format: { type: "json_object" }
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        lastError = `Model ${model} failed: ${errorText}`;
+        continue; // Пробуємо наступну модель
+      }
+
+      const rawData = await response.json();
+      const content = rawData.choices?.[0]?.message?.content;
+      if (!content) continue;
+
+      const parsedContent = JSON.parse(content);
+      const comebacks = parsedContent.comebacks || parsedContent.results || [];
+
+      if (Array.isArray(comebacks) && comebacks.length > 0) {
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify(comebacks)
+        };
+      }
+    } catch (err) {
+      lastError = err.message;
     }
-
-    const rawData = await response.json();
-    const parsedContent = JSON.parse(rawData.choices[0].message.content);
-
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify(parsedContent.comebacks || [])
-    };
-  } catch (err) {
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: err.message })
-    };
   }
+
+  // Якщо всі моделі Groq відхилили запит, повертаємо якісний резервний сарказм без помилки
+  const fallbacks = language === 'uk' ? [
+    { text: `Щодо "${query}": це настільки геніально, що я б навіть аплодував, якби не був зайнятий фейспалмом.`, tone: "Sharp Irony" },
+    { text: `Коли відбувається "${query}", десь у світі сумує один здоровий глузд.`, tone: "Dry Wit" },
+    { text: `Я щиро сподіваюся, що за перформанс із "${query}" вам випишуть якусь міжнародну премію за хаос.`, tone: "Sarcastic" },
+    { text: `З кожною згадкою про "${query}" моє терпіння зменшується в геометричній прогресії.`, tone: "Passive-Aggressive" }
+  ] : [
+    { text: `Regarding "${query}": That is so brilliant that common sense just left the room.`, tone: "Sharp Irony" },
+    { text: `Dealing with "${query}" makes me appreciate complete solitude more than ever.`, tone: "Dry Wit" },
+    { text: `I hope your dedication to "${query}" comes with free therapy for everyone around.`, tone: "Sarcastic" },
+    { text: `Every second spent on "${query}" is another moment I will never get back.`, tone: "Passive-Aggressive" }
+  ];
+
+  return {
+    statusCode: 200,
+    headers,
+    body: JSON.stringify(fallbacks)
+  };
 };
