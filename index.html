@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="uk" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SarcasmVault — High-Precision Sarcastic & Witty Comebacks</title>
+  <title>SarcasmVault — Генератор нищівного сарказму</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
@@ -74,7 +74,7 @@
       <div class="flex items-center space-x-2 sm:space-x-3">
         <button id="btnOpenSubmit" onclick="openSubmitModal()" class="px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-slate-900 border border-slate-700/80 hover:border-purple-500/50 hover:bg-slate-800 text-slate-200 flex items-center space-x-1.5 transition-all shadow-sm">
           <i class="ph ph-plus-circle text-purple-400 text-base"></i>
-          <span data-i18n="navSubmit">Submit</span>
+          <span data-i18n="navSubmit">Додати</span>
         </button>
 
         <div class="relative">
@@ -192,10 +192,9 @@
         </div>
       </div>
 
-      <!-- Live AI status bar -->
       <div id="aiLoadingIndicator" class="hidden p-4 rounded-xl bg-purple-950/40 border border-purple-800/60 flex items-center space-x-3 text-purple-300 text-xs animate-pulse">
         <i class="ph-bold ph-brain text-lg animate-spin"></i>
-        <span data-i18n="aiSearchingText">Сервер звертається до Groq AI: підбір та переклад нищівних дотепів...</span>
+        <span data-i18n="aiSearchingText">Звернення до Groq AI: підбір та переклад нищівних дотепів...</span>
       </div>
 
       <div id="comebackFeed" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
@@ -407,7 +406,7 @@
         copiedToast: "Скопійовано в буфер!",
         walletCopied: "Адресу гаманця скопійовано! Дякуємо за підтримку.",
         aiTag: "AI Генерація",
-        aiSearchingText: "Сервер звертається до Groq AI: підбір та переклад нищівних дотепів..."
+        aiSearchingText: "Звернення до Groq AI: підбір та переклад нищівних дотепів..."
       },
       en: {
         navSubmit: "Submit",
@@ -434,7 +433,7 @@
         copiedToast: "Copied to clipboard!",
         walletCopied: "Wallet address copied! Thank you for supporting.",
         aiTag: "AI Generated",
-        aiSearchingText: "Server is contacting Groq AI to deliver devastating comebacks..."
+        aiSearchingText: "Contacting Groq AI to deliver devastating comebacks..."
       }
     };
 
@@ -467,34 +466,49 @@
       }
     ];
 
-    /* --- ЗАПРОС К СЕРВЕРНОЙ NETLIFY FUNCTION --- */
+    /* --- БЕЗПОМИЛКОВИЙ ЗАПИТ ДО NETLIFY SERVERLESS FUNCTION --- */
     async function queryServerlessSarcasm(query, lang) {
       const loading = document.getElementById('aiLoadingIndicator');
       const submitBtn = document.getElementById('btnSearchSubmit');
       const icon = document.getElementById('searchBtnIcon');
       const text = document.getElementById('searchBtnText');
-      const dict = translations[lang];
+      const dict = translations[lang] || translations['uk'];
 
-      loading.classList.remove('hidden');
-      submitBtn.disabled = true;
-      icon.className = "ph-bold ph-spinner animate-spin";
-      text.textContent = dict.btnSearching;
+      if (loading) loading.classList.remove('hidden');
+      if (submitBtn) submitBtn.disabled = true;
+      if (icon) icon.className = "ph-bold ph-spinner animate-spin";
+      if (text) text.textContent = dict.btnSearching;
 
       currentCategory = 'all';
       renderCategoryChips();
 
       try {
+        const payloadData = {
+          query: String(query).trim(),
+          language: lang || 'uk'
+        };
+
         const res = await fetch('/.netlify/functions/get-sarcasm', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query: query, language: lang })
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(payloadData)
         });
 
-        if (!res.ok) {
-          throw new Error("HTTP error " + res.status);
+        const rawText = await res.text();
+        let data;
+        try {
+          data = JSON.parse(rawText);
+        } catch (jsonErr) {
+          throw new Error("Відповідь сервера не у форматі JSON: " + rawText.slice(0, 70));
         }
 
-        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || `HTTP Помилка ${res.status}`);
+        }
+
         const items = Array.isArray(data) ? data : (data.comebacks || []);
 
         if (items.length > 0) {
@@ -506,29 +520,32 @@
               situation: query,
               phrase: item.text || item.phrase,
               tone: item.tone || "Sharp Irony",
-              upvotes: 40 + idx * 5,
+              upvotes: 45 + idx * 5,
               downvotes: 0,
               createdAt: Date.now(),
               isAiSourced: true
             });
           });
-          showToast(lang === 'uk' ? "AI згенерував свіжі відповіді з мережі!" : "Fresh AI comebacks generated!");
+          showToast(lang === 'uk' ? "AI згенерував свіжі відповіді!" : "Fresh AI comebacks generated!");
+        } else {
+          throw new Error("Отримано порожній список відповідей.");
         }
       } catch (err) {
         console.error("Function call failed:", err);
-        showToast(lang === 'uk' ? "Помилка зв'язку із сервером." : "Server error.", true);
+        showToast(err.message, true);
       } finally {
-        loading.classList.add('hidden');
-        submitBtn.disabled = false;
-        icon.className = "ph-bold ph-lightning";
-        text.textContent = dict.btnSearch;
+        if (loading) loading.classList.add('hidden');
+        if (submitBtn) submitBtn.disabled = false;
+        if (icon) icon.className = "ph-bold ph-lightning";
+        if (text) text.textContent = dict.btnSearch;
         renderFeed();
       }
     }
 
     function handleSearchSubmit(e) {
-      e.preventDefault();
-      const val = document.getElementById('searchInput').value.trim();
+      if (e && e.preventDefault) e.preventDefault();
+      const input = document.getElementById('searchInput');
+      const val = input ? input.value.trim() : '';
       if (!val) return;
 
       currentSearchTerm = val;
@@ -707,7 +724,7 @@
       const textSpan = document.getElementById(`text-copy-${id}`);
       if (icon && textSpan) {
         icon.className = "ph-bold ph-check text-emerald-400";
-        textSpan.textContent = "Done";
+        textSpan.textContent = "Готово";
         setTimeout(() => {
           icon.className = "ph-bold ph-copy";
           textSpan.textContent = translations[currentLang].btnCopy;
@@ -765,7 +782,7 @@
       toast.className = `pointer-events-auto flex items-center space-x-2.5 px-4 py-3 rounded-xl border shadow-2xl text-xs font-medium backdrop-blur-md animate-toast ${bgColor}`;
       toast.innerHTML = `<i class="ph-bold ph-sparkle text-purple-400 text-base"></i><span>${message}</span>`;
       container.appendChild(toast);
-      setTimeout(() => toast.remove(), 3000);
+      setTimeout(() => toast.remove(), 3500);
     }
 
     window.addEventListener('DOMContentLoaded', () => {
