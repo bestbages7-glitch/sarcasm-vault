@@ -1,5 +1,4 @@
 exports.handler = async function (event) {
-  // Дозволяємо CORS-запити з браузера
   const headers = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type",
@@ -15,7 +14,7 @@ exports.handler = async function (event) {
     return {
       statusCode: 405,
       headers,
-      body: JSON.stringify({ error: "Method Not Allowed. Send a POST request." })
+      body: JSON.stringify({ error: "Method Not Allowed" })
     };
   }
 
@@ -29,7 +28,6 @@ exports.handler = async function (event) {
       language = parsed.language || "uk";
     }
   } catch (parseErr) {
-    console.error("JSON parse error on request body:", parseErr);
     return {
       statusCode: 400,
       headers,
@@ -41,17 +39,16 @@ exports.handler = async function (event) {
     return {
       statusCode: 400,
       headers,
-      body: JSON.stringify({ error: "Search query is empty" })
+      body: JSON.stringify({ error: "Порожній запит" })
     };
   }
 
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
-    console.error("Missing GROQ_API_KEY in environment variables");
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: "Server missing GROQ_API_KEY" })
+      body: JSON.stringify({ error: "Відсутній GROQ_API_KEY у налаштуваннях" })
     };
   }
 
@@ -60,13 +57,13 @@ exports.handler = async function (event) {
   const systemPrompt = `You are a world-class satirist and master of sharp wit.
 Generate 4 distinct, devastatingly clever, witty, and sarcastic comebacks suitable for the situation.
 Output language MUST strictly be ${targetLang}.
-Respond ONLY with a valid JSON object matching this schema:
+Respond ONLY with a valid JSON object matching this exact schema:
 {
   "comebacks": [
-    { "text": "punchline here", "tone": "Dry Wit" },
-    { "text": "punchline here", "tone": "Sharp Irony" },
-    { "text": "punchline here", "tone": "Passive-Aggressive" },
-    { "text": "punchline here", "tone": "Sarcastic" }
+    { "text": "дотепний панч тут", "tone": "Dry Wit" },
+    { "text": "дотепний панч тут", "tone": "Sharp Irony" },
+    { "text": "дотепний панч тут", "tone": "Passive-Aggressive" },
+    { "text": "дотепний панч тут", "tone": "Sarcastic" }
   ]
 }`;
 
@@ -78,7 +75,7 @@ Respond ONLY with a valid JSON object matching this schema:
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "llama-3.1-8b-instant",
+        model: "mixtral-8x7b-32768",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Situation: ${query}` }
@@ -90,7 +87,6 @@ Respond ONLY with a valid JSON object matching this schema:
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error("Groq API error response:", response.status, errText);
       return {
         statusCode: response.status,
         headers,
@@ -107,7 +103,6 @@ Respond ONLY with a valid JSON object matching this schema:
       body: JSON.stringify(parsedContent.comebacks || [])
     };
   } catch (err) {
-    console.error("Execution exception:", err);
     return {
       statusCode: 500,
       headers,
