@@ -78,7 +78,7 @@ Respond ONLY with a valid JSON object matching this schema:
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "llama3-8b-8192",
+        model: "llama-3.1-8b-instant",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Situation: ${query}` }
