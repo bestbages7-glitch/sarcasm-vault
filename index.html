@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SarcasmVault — High-Precision Sarcastic & Witty Comebacks</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f5f3ff',
+              100: '#ede9fe',
+              500: '#8b5cf6',
+              600: '#7c3aed',
+              700: '#6d28d9',
+              800: '#5b21b6',
+              900: '#4c1d95',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #090d16; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 9999px; }
+    .glow-bg { background: radial-gradient(circle at 50% -15%, rgba(124, 58, 237, 0.22), rgba(2, 6, 23, 0) 65%); }
+    .card-hover-effect { transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1); }
+    .card-hover-effect:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px -8px rgba(124, 58, 237, 0.2);
+      border-color: rgba(139, 92, 246, 0.45);
+    }
+    @keyframes slideInUp {
+      from { transform: translateY(100%) scale(0.95); opacity: 0; }
+      to { transform: translateY(0) scale(1); opacity: 1; }
+    }
+    .animate-toast { animation: slideInUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-purple-600 selection:text-white glow-bg">
+
+  <header class="sticky top-0 z-40 backdrop-blur-xl bg-slate-950/85 border-b border-slate-800/80">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="resetToHome()">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-500/25 ring-1 ring-white/20">
+          <i class="ph-bold ph-chat-teardrop-slash text-xl text-white"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-1.5">
+            <span class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-200 to-purple-400 bg-clip-text text-transparent">
+              SarcasmVault
+            </span>
+            <span class="text-[10px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded-md bg-purple-950/90 text-purple-300 border border-purple-800/60">
+              AI PRO
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2 sm:space-x-3">
+        <button id="btnOpenSubmit" onclick="openSubmitModal()" class="px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-slate-900 border border-slate-700/80 hover:border-purple-500/50 hover:bg-slate-800 text-slate-200 flex items-center space-x-1.5 transition-all shadow-sm">
+          <i class="ph ph-plus-circle text-purple-400 text-base"></i>
+          <span data-i18n="navSubmit">Submit</span>
+        </button>
+
+        <div class="relative">
+          <button id="langToggleBtn" onclick="toggleLanguageMenu()" class="px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-slate-900 border border-slate-800 hover:border-slate-700 flex items-center space-x-1.5 text-slate-200 transition-colors">
+            <i class="ph ph-globe text-base text-purple-400"></i>
+            <span id="currentLangLabel">UA</span>
+            <i class="ph ph-caret-down text-xs text-slate-400"></i>
+          </button>
+          
+          <div id="langDropdown" class="hidden absolute right-0 mt-2 w-36 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl py-1.5 z-50">
+            <button onclick="setLanguage('uk')" class="w-full text-left px-3 py-2 text-xs font-semibold hover:bg-purple-950/50 hover:text-purple-300 flex items-center justify-between text-slate-300">
+              <span>Українська (UA)</span>
+              <span id="check-uk" class="text-purple-400"><i class="ph-bold ph-check"></i></span>
+            </button>
+            <button onclick="setLanguage('en')" class="w-full text-left px-3 py-2 text-xs font-semibold hover:bg-purple-950/50 hover:text-purple-300 flex items-center justify-between text-slate-300">
+              <span>English (EN)</span>
+              <span id="check-en" class="text-purple-400 hidden"><i class="ph-bold ph-check"></i></span>
+            </button>
+          </div>
+        </div>
+
+        <button onclick="toggleDonationModal()" class="px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-950/40 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-900/40 transition-all flex items-center space-x-1.5">
+          <i class="ph-bold ph-currency-circle-dollar text-base"></i>
+          <span class="hidden sm:inline" data-i18n="navSupport">Підтримати USDT</span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <main class="flex-grow max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-10 flex flex-col gap-8">
+    
+    <section class="text-center space-y-3.5 max-w-3xl mx-auto">
+      <div class="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-semibold">
+        <i class="ph-fill ph-sparkle text-sm text-purple-400"></i>
+        <span data-i18n="heroBadge">Пошук та переклад світового сарказму в реальному часі</span>
+      </div>
+
+      <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
+        <span data-i18n="heroTitlePrefix">Перетворюй токсичність на</span><br class="hidden sm:inline" />
+        <span class="bg-gradient-to-r from-purple-400 via-pink-400 to-indigo-400 bg-clip-text text-transparent" data-i18n="heroTitleGradient">
+          Холодний, Нищівний Сарказм
+        </span>
+      </h1>
+
+      <p class="text-slate-400 text-sm sm:text-base max-w-2xl mx-auto" data-i18n="heroSubtext">
+        Шумні сусіди, шеф-мікроменеджер, непрохані поради чи побут? Опишіть ситуацію та отримайте персональні саркастичні відповіді.
+      </p>
+    </section>
+
+    <section class="w-full bg-slate-900/80 backdrop-blur border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-2xl space-y-5">
+      
+      <form id="searchForm" onsubmit="handleSearchSubmit(event)" class="relative flex flex-col sm:flex-row gap-3">
+        <div class="relative flex-grow">
+          <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500">
+            <i class="ph ph-magnifying-glass text-lg"></i>
+          </div>
+          <input 
+            type="text" 
+            id="searchInput" 
+            class="w-full pl-11 pr-10 py-3.5 bg-slate-950/90 border border-slate-700/80 rounded-xl text-slate-100 placeholder-slate-500 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+            data-i18n-placeholder="inputPlaceholder"
+            placeholder="Опишіть ситуацію (наприклад: сусід хропе, сусід затопив балкон, хочу спати)..."
+            autocomplete="off"
+          />
+          <button 
+            type="button" 
+            id="clearInputBtn" 
+            onclick="clearSearchInput()" 
+            class="hidden absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300">
+            <i class="ph ph-x-circle text-lg"></i>
+          </button>
+        </div>
+
+        <button 
+          type="submit" 
+          id="btnSearchSubmit"
+          class="px-6 py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 active:scale-[0.98] text-white font-semibold text-sm sm:text-base flex items-center justify-center space-x-2 shadow-lg shadow-purple-600/30 transition-all min-w-[170px]">
+          <i class="ph-bold ph-lightning" id="searchBtnIcon"></i>
+          <span id="searchBtnText" data-i18n="btnSearch">Знайти сарказм</span>
+        </button>
+      </form>
+
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-1 border-t border-slate-800/60">
+        <div class="flex items-center space-x-2 text-xs font-semibold text-slate-400">
+          <i class="ph ph-funnel"></i>
+          <span data-i18n="tagLabel">Готові контексти:</span>
+        </div>
+      </div>
+
+      <div id="categoryChipsContainer" class="flex flex-wrap gap-2"></div>
+    </section>
+
+    <section class="space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-slate-800/80">
+        <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+          <div class="flex items-center space-x-1.5">
+            <span class="text-xs uppercase tracking-wider font-bold text-slate-500" data-i18n="toneFilterLabel">Тон:</span>
+            <select id="toneSelect" onchange="handleToneChange(event)" class="bg-slate-900 border border-slate-800 text-slate-300 rounded-lg px-2.5 py-1 text-xs font-semibold focus:outline-none focus:border-purple-500">
+              <option value="all" data-i18n="toneAll">Всі тональності</option>
+              <option value="Dry Wit">Dry Wit</option>
+              <option value="Sarcastic">Sarcastic</option>
+              <option value="Sharp Irony">Sharp Irony</option>
+              <option value="Passive-Aggressive">Passive-Aggressive</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-3">
+          <span id="resultCountBadge" class="text-xs font-bold text-purple-400"></span>
+          <button onclick="triggerSurpriseMe()" class="text-xs font-semibold text-purple-400 hover:text-purple-300 flex items-center space-x-1 transition-colors">
+            <i class="ph-bold ph-shuffle text-sm"></i>
+            <span data-i18n="surpriseBtn">Випадковий панч</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Live AI status bar -->
+      <div id="aiLoadingIndicator" class="hidden p-4 rounded-xl bg-purple-950/40 border border-purple-800/60 flex items-center space-x-3 text-purple-300 text-xs animate-pulse">
+        <i class="ph-bold ph-brain text-lg animate-spin"></i>
+        <span data-i18n="aiSearchingText">Сервер звертається до Groq AI: підбір та переклад нищівних дотепів...</span>
+      </div>
+
+      <div id="comebackFeed" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+
+      <div id="emptyState" class="hidden text-center py-16 px-4 bg-slate-900/40 border border-slate-800/60 rounded-2xl space-y-3">
+        <div class="w-12 h-12 mx-auto rounded-full bg-slate-800 flex items-center justify-center text-slate-400">
+          <i class="ph ph-mask-sad text-2xl"></i>
+        </div>
+        <h3 class="text-base font-bold text-slate-200" data-i18n="emptyTitle">Нічого не знайдено</h3>
+        <p class="text-xs text-slate-400 max-w-sm mx-auto" data-i18n="emptyDesc">
+          Для цієї ситуації ще немає відповідей. Спробуйте інший запит або згенеруйте нові!
+        </p>
+      </div>
+
+    </section>
+
+  </main>
+
+  <footer class="border-t border-slate-800/80 bg-slate-950/60 py-8 mt-12 text-center text-xs text-slate-500">
+    <div class="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center space-x-2">
+        <i class="ph-fill ph-shield-check text-purple-400 text-sm"></i>
+        <span>Виключно гумор, іронія та сатира. Жодної мови ворожнечі.</span>
+      </div>
+      <div class="text-slate-400 flex items-center space-x-4">
+        <span>SarcasmVault Collective © 2026</span>
+        <button onclick="toggleDonationModal()" class="text-purple-400 hover:underline">USDT TRC20</button>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Submission Modal -->
+  <div id="submitModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl shadow-2xl p-6 relative space-y-5">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div class="flex items-center space-x-2">
+          <div class="p-2 rounded-lg bg-purple-500/10 text-purple-400">
+            <i class="ph-bold ph-lightbulb text-lg"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-base text-slate-100">Додати саркастичну відповідь</h3>
+            <p class="text-xs text-slate-400">Поповніть арсенал власним дотепом</p>
+          </div>
+        </div>
+        <button onclick="closeSubmitModal()" class="text-slate-400 hover:text-white p-1 rounded-lg">
+          <i class="ph-bold ph-x text-lg"></i>
+        </button>
+      </div>
+
+      <form id="submissionForm" onsubmit="handleFormSubmission(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Саркастична фраза *</label>
+          <textarea 
+            id="subPhrase" 
+            required 
+            rows="3" 
+            class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            placeholder="наприклад: Я б із радістю погодився з вами, але тоді ми обоє будемо неправі."></textarea>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Категорія *</label>
+            <select id="subCategory" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500">
+              <option value="neighbor">Шумні сусіди</option>
+              <option value="workplace">Офіс та Шеф</option>
+              <option value="advice">Непрохані поради</option>
+              <option value="everyday">Побут і Черги</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Тон *</label>
+            <select id="subTone" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500">
+              <option value="Dry Wit">Dry Wit</option>
+              <option value="Sarcastic">Sarcastic</option>
+              <option value="Sharp Irony">Sharp Irony</option>
+              <option value="Passive-Aggressive">Passive-Aggressive</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="pt-2 flex justify-end space-x-2">
+          <button type="button" onclick="closeSubmitModal()" class="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300">
+            Скасувати
+          </button>
+          <button type="submit" class="px-5 py-2 text-xs font-semibold rounded-xl bg-purple-600 hover:bg-purple-500 text-white flex items-center space-x-1.5">
+            <i class="ph-bold ph-paper-plane-right"></i>
+            <span>Опублікувати</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Persistent USDT Modal -->
+  <div id="donationWidgetContainer" class="fixed bottom-5 right-5 z-40">
+    <button 
+      id="donationFloatingBtn" 
+      onclick="toggleDonationModal()" 
+      class="group flex items-center space-x-2.5 px-4 py-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-2xl hover:scale-105 active:scale-95 transition-all border border-emerald-400/30">
+      <div class="relative">
+        <i class="ph-bold ph-hand-heart text-xl"></i>
+        <span class="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400"></span>
+        </span>
+      </div>
+      <div class="text-left leading-tight">
+        <div class="text-xs font-bold" data-i18n="floatingSupportTitle">Підтримати проект</div>
+        <div class="text-[10px] text-emerald-200 mono font-medium">USDT (TRC20)</div>
+      </div>
+    </button>
+
+    <div id="donationModal" class="hidden absolute bottom-16 right-0 w-80 sm:w-96 bg-slate-900/95 backdrop-blur-2xl border border-emerald-500/30 rounded-2xl shadow-2xl p-5 space-y-4 animate-toast">
+      <div class="flex items-start justify-between">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+            <i class="ph-bold ph-coin-vertical text-lg"></i>
+          </div>
+          <div>
+            <h4 class="font-bold text-sm text-slate-100">Підтримайте проект</h4>
+            <p class="text-[11px] text-slate-400">Сервери та розвиток генератора сарказму</p>
+          </div>
+        </div>
+        <button onclick="toggleDonationModal()" class="text-slate-400 hover:text-slate-200 p-1">
+          <i class="ph-bold ph-x"></i>
+        </button>
+      </div>
+
+      <div class="p-3 bg-slate-950/80 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
+        <div class="flex items-center space-x-2">
+          <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></div>
+          <span class="text-slate-300 font-semibold">Asset:</span>
+          <span class="text-emerald-400 font-bold">USDT</span>
+        </div>
+        <div class="px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-800 text-emerald-300 text-[10px] font-bold mono">
+          Network: TRC20
+        </div>
+      </div>
+
+      <div class="flex flex-col items-center justify-center bg-white p-3 rounded-xl shadow-inner mx-auto">
+        <img 
+          id="qrCodeImg" 
+          src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=TYztdZzpjKuprLj1a1C9jJAsyHYZ9vfV3F" 
+          alt="USDT TRC20 QR Code" 
+          class="w-32 h-32"
+        />
+        <span class="text-[10px] font-bold text-slate-600 uppercase tracking-wider mt-1.5">TRC20 Scan to Donate</span>
+      </div>
+
+      <div class="space-y-1.5">
+        <div class="flex justify-between text-[11px] font-medium text-slate-400">
+          <span>Гаманець USDT (TRC20)</span>
+          <span class="text-emerald-400 font-medium">Перевірено</span>
+        </div>
+        
+        <div class="relative flex items-center">
+          <input 
+            type="text" 
+            readonly 
+            value="TYztdZzpjKuprLj1a1C9jJAsyHYZ9vfV3F" 
+            class="w-full pl-3 pr-20 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs mono text-emerald-300 select-all focus:outline-none"
+          />
+          <button 
+            type="button" 
+            onclick="copyWalletAddress()" 
+            class="absolute right-1.5 px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white rounded-lg text-xs font-semibold flex items-center space-x-1 transition-all shadow">
+            <i class="ph-bold ph-copy"></i>
+            <span>Копіювати</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toastContainer" class="fixed top-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+  <script>
+    const WALLET_ADDRESS = 'TYztdZzpjKuprLj1a1C9jJAsyHYZ9vfV3F';
+    let currentLang = 'uk';
+    let currentCategory = 'all';
+    let currentTone = 'all';
+    let currentSearchTerm = '';
+
+    const translations = {
+      uk: {
+        navSubmit: "Додати",
+        navSupport: "Підтримати USDT",
+        heroBadge: "Пошук та переклад світового сарказму в реальному часі",
+        heroTitlePrefix: "Перетворюй токсичність на",
+        heroTitleGradient: "Холодний, Нищівний Сарказм",
+        heroSubtext: "Шумні сусіди, шеф-мікроменеджер, непрохані поради чи побут? Опишіть ситуацію та отримайте персональні саркастичні відповіді.",
+        inputPlaceholder: "Опишіть ситуацію (наприклад: сусід хропе, сусід затопив балкон, хочу спати)...",
+        btnSearch: "Знайти сарказм",
+        btnSearching: "Шукаємо сарказм через AI...",
+        tagLabel: "Готові контексти:",
+        toneFilterLabel: "Тон:",
+        toneAll: "Всі тональності",
+        surpriseBtn: "Випадковий панч",
+        catAll: "Всі контексти",
+        catNeighbor: "Шумні сусіди",
+        catWorkplace: "Офіс та Шеф",
+        catAdvice: "Непрохані поради",
+        catEveryday: "Побут і Черги",
+        emptyTitle: "Нічого не знайдено",
+        emptyDesc: "Для цієї ситуації ще немає відповідей. Спробуйте інший запит або згенеруйте нові!",
+        btnCopy: "Копіювати",
+        copiedToast: "Скопійовано в буфер!",
+        walletCopied: "Адресу гаманця скопійовано! Дякуємо за підтримку.",
+        aiTag: "AI Генерація",
+        aiSearchingText: "Сервер звертається до Groq AI: підбір та переклад нищівних дотепів..."
+      },
+      en: {
+        navSubmit: "Submit",
+        navSupport: "Support USDT",
+        heroBadge: "Real-Time Global Sarcasm Search & Translation Engine",
+        heroTitlePrefix: "Turn Annoying Moments Into",
+        heroTitleGradient: "Cold, Devastating Wit",
+        heroSubtext: "Got noisy neighbors, a micromanaging boss, unwanted advice, or trolls? Search and generate witty comebacks translated into your chosen language.",
+        inputPlaceholder: "Describe your situation (e.g. Neighbor snoring, neighbor flooded my balcony, want to sleep)...",
+        btnSearch: "Find Comebacks",
+        btnSearching: "Querying Groq AI...",
+        tagLabel: "Preset Contexts:",
+        toneFilterLabel: "Tone:",
+        toneAll: "All Tones",
+        surpriseBtn: "Surprise Me",
+        catAll: "All Contexts",
+        catNeighbor: "Noisy Neighbors",
+        catWorkplace: "Office & Boss",
+        catAdvice: "Unsolicited Advice",
+        catEveryday: "Queues & Everyday",
+        emptyTitle: "No matches found",
+        emptyDesc: "No punchlines found for this yet. Submit your own or try another query!",
+        btnCopy: "Copy",
+        copiedToast: "Copied to clipboard!",
+        walletCopied: "Wallet address copied! Thank you for supporting.",
+        aiTag: "AI Generated",
+        aiSearchingText: "Server is contacting Groq AI to deliver devastating comebacks..."
+      }
+    };
+
+    const categoryDefinitions = [
+      { id: 'all', key: 'catAll', icon: 'ph-squares-four' },
+      { id: 'neighbor', key: 'catNeighbor', icon: 'ph-house-line' },
+      { id: 'workplace', key: 'catWorkplace', icon: 'ph-briefcase' },
+      { id: 'advice', key: 'catAdvice', icon: 'ph-megaphone' },
+      { id: 'everyday', key: 'catEveryday', icon: 'ph-shopping-cart' }
+    ];
+
+    let vaultItems = [
+      {
+        id: "uk-1",
+        lang: "uk",
+        category: "neighbor",
+        situation: "Сусід свердлить стіну о 7:00 ранку",
+        phrase: "Ваш ремонт звучить грандіозно. Ви робите перепланування чи ведете археологічні розкопки крізь мою стелю?",
+        tone: "Dry Wit",
+        upvotes: 290, downvotes: 3, createdAt: 1718170000000
+      },
+      {
+        id: "uk-2",
+        lang: "uk",
+        category: "workplace",
+        situation: "Шеф каже 'ми сім'я' щоб змусити працювати у вихідні",
+        phrase: "Обожнюю тезу 'ми одна родина'. Токсично, вимагається безоплатна праця і починає сіпатися око від дзвінків.",
+        tone: "Corporate Chill",
+        upvotes: 412, downvotes: 7, createdAt: 1718210000000
+      }
+    ];
+
+    /* --- ЗАПРОС К СЕРВЕРНОЙ NETLIFY FUNCTION --- */
+    async function queryServerlessSarcasm(query, lang) {
+      const loading = document.getElementById('aiLoadingIndicator');
+      const submitBtn = document.getElementById('btnSearchSubmit');
+      const icon = document.getElementById('searchBtnIcon');
+      const text = document.getElementById('searchBtnText');
+      const dict = translations[lang];
+
+      loading.classList.remove('hidden');
+      submitBtn.disabled = true;
+      icon.className = "ph-bold ph-spinner animate-spin";
+      text.textContent = dict.btnSearching;
+
+      currentCategory = 'all';
+      renderCategoryChips();
+
+      try {
+        const res = await fetch('/.netlify/functions/get-sarcasm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: query, language: lang })
+        });
+
+        if (!res.ok) {
+          throw new Error("HTTP error " + res.status);
+        }
+
+        const data = await res.json();
+        const items = Array.isArray(data) ? data : (data.comebacks || []);
+
+        if (items.length > 0) {
+          items.forEach((item, idx) => {
+            vaultItems.unshift({
+              id: `ai-${Date.now()}-${idx}`,
+              lang: lang,
+              category: 'all',
+              situation: query,
+              phrase: item.text || item.phrase,
+              tone: item.tone || "Sharp Irony",
+              upvotes: 40 + idx * 5,
+              downvotes: 0,
+              createdAt: Date.now(),
+              isAiSourced: true
+            });
+          });
+          showToast(lang === 'uk' ? "AI згенерував свіжі відповіді з мережі!" : "Fresh AI comebacks generated!");
+        }
+      } catch (err) {
+        console.error("Function call failed:", err);
+        showToast(lang === 'uk' ? "Помилка зв'язку із сервером." : "Server error.", true);
+      } finally {
+        loading.classList.add('hidden');
+        submitBtn.disabled = false;
+        icon.className = "ph-bold ph-lightning";
+        text.textContent = dict.btnSearch;
+        renderFeed();
+      }
+    }
+
+    function handleSearchSubmit(e) {
+      e.preventDefault();
+      const val = document.getElementById('searchInput').value.trim();
+      if (!val) return;
+
+      currentSearchTerm = val;
+      queryServerlessSarcasm(val, currentLang);
+    }
+
+    function setLanguage(lang) {
+      currentLang = lang;
+      document.getElementById('currentLangLabel').textContent = lang.toUpperCase();
+      document.getElementById('check-en').classList.toggle('hidden', lang !== 'en');
+      document.getElementById('check-uk').classList.toggle('hidden', lang !== 'uk');
+      document.getElementById('langDropdown').classList.add('hidden');
+
+      updateLocalizedStrings();
+      renderCategoryChips();
+      renderFeed();
+    }
+
+    function toggleLanguageMenu() {
+      document.getElementById('langDropdown').classList.toggle('hidden');
+    }
+
+    function updateLocalizedStrings() {
+      const dict = translations[currentLang];
+      document.querySelectorAll('[data-i18n]').forEach(elem => {
+        const key = elem.getAttribute('data-i18n');
+        if (dict[key]) elem.textContent = dict[key];
+      });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(elem => {
+        const key = elem.getAttribute('data-i18n-placeholder');
+        if (dict[key]) elem.placeholder = dict[key];
+      });
+    }
+
+    function renderCategoryChips() {
+      const container = document.getElementById('categoryChipsContainer');
+      const dict = translations[currentLang];
+      
+      container.innerHTML = categoryDefinitions.map(cat => {
+        const isActive = currentCategory === cat.id;
+        const activeClass = isActive 
+          ? 'bg-purple-600 text-white border-purple-500 shadow-md shadow-purple-600/25' 
+          : 'bg-slate-950/80 text-slate-400 border-slate-800 hover:text-slate-200 hover:border-slate-700';
+
+        return `
+          <button 
+            type="button"
+            onclick="selectCategory('${cat.id}')"
+            class="px-3 py-1.5 rounded-xl text-xs font-semibold border flex items-center space-x-1.5 transition-all ${activeClass}">
+            <i class="ph ${cat.icon}"></i>
+            <span>${dict[cat.key]}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function selectCategory(catId) {
+      currentCategory = catId;
+      renderCategoryChips();
+      renderFeed();
+    }
+
+    function renderFeed() {
+      const feed = document.getElementById('comebackFeed');
+      const emptyState = document.getElementById('emptyState');
+      const dict = translations[currentLang];
+
+      let list = vaultItems.filter(item => {
+        if (item.lang !== currentLang) return false;
+        if (currentCategory !== 'all' && item.category !== currentCategory) return false;
+        if (currentTone !== 'all' && item.tone !== currentTone) return false;
+        return true;
+      });
+
+      document.getElementById('resultCountBadge').textContent = `(${list.length} results)`;
+
+      if (list.length === 0) {
+        feed.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+
+      feed.innerHTML = list.map(item => {
+        const badge = item.isAiSourced 
+          ? `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-fuchsia-950/80 text-fuchsia-300 border border-fuchsia-700/50">
+               <i class="ph-bold ph-sparkle mr-1"></i>${dict.aiTag}
+             </span>` 
+          : '';
+
+        return `
+          <div class="card-hover-effect bg-slate-900/80 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between space-y-4">
+            <div class="space-y-2">
+              <div class="flex items-center justify-between gap-2 flex-wrap">
+                <span class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-purple-950/80 text-purple-300 border border-purple-800/60">
+                  ${item.tone}
+                </span>
+                ${badge}
+              </div>
+              <div class="text-xs text-slate-400 italic">
+                <i class="ph ph-target text-slate-500 mr-1"></i> "${escapeHtml(item.situation)}"
+              </div>
+            </div>
+
+            <blockquote class="text-base sm:text-lg font-semibold text-slate-100 leading-snug tracking-tight">
+              “${escapeHtml(item.phrase)}”
+            </blockquote>
+
+            <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
+              <div class="flex items-center space-x-1 bg-slate-950/80 px-2.5 py-1 rounded-xl border border-slate-800">
+                <button onclick="voteComeback('${item.id}', 1)" class="text-slate-400 hover:text-emerald-400 p-1">
+                  <i class="ph-bold ph-thumbs-up text-sm"></i>
+                </button>
+                <span class="font-bold text-slate-200 mono text-xs px-1">${item.upvotes - item.downvotes}</span>
+                <button onclick="voteComeback('${item.id}', -1)" class="text-slate-400 hover:text-rose-400 p-1">
+                  <i class="ph-bold ph-thumbs-down text-sm"></i>
+                </button>
+              </div>
+
+              <button 
+                onclick="copyComebackText('${item.id}', '${escapeHtml(item.phrase)}')" 
+                id="btn-copy-${item.id}"
+                class="px-3 py-1.5 rounded-xl bg-purple-600/15 hover:bg-purple-600/30 text-purple-300 border border-purple-500/40 flex items-center space-x-1.5 transition-all">
+                <i class="ph-bold ph-copy" id="icon-copy-${item.id}"></i>
+                <span id="text-copy-${item.id}">${dict.btnCopy}</span>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function voteComeback(id, delta) {
+      const target = vaultItems.find(c => c.id === id);
+      if (target) {
+        if (delta > 0) target.upvotes += 1;
+        else target.downvotes += 1;
+        renderFeed();
+      }
+    }
+
+    function triggerSurpriseMe() {
+      const presets = ["сусід свердлить у вихідний", "шеф попросив вийти в суботу", "стоять впритул у черзі"];
+      const pick = presets[Math.floor(Math.random() * presets.length)];
+      document.getElementById('searchInput').value = pick;
+      queryServerlessSarcasm(pick, currentLang);
+    }
+
+    function clearSearchInput() {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('clearInputBtn').classList.add('hidden');
+    }
+
+    function handleToneChange(e) {
+      currentTone = e.target.value;
+      renderFeed();
+    }
+
+    function resetToHome() {
+      currentCategory = 'all';
+      currentTone = 'all';
+      document.getElementById('searchInput').value = '';
+      renderCategoryChips();
+      renderFeed();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function copyComebackText(id, text) {
+      navigator.clipboard.writeText(text);
+      const icon = document.getElementById(`icon-copy-${id}`);
+      const textSpan = document.getElementById(`text-copy-${id}`);
+      if (icon && textSpan) {
+        icon.className = "ph-bold ph-check text-emerald-400";
+        textSpan.textContent = "Done";
+        setTimeout(() => {
+          icon.className = "ph-bold ph-copy";
+          textSpan.textContent = translations[currentLang].btnCopy;
+        }, 1800);
+      }
+      showToast(translations[currentLang].copiedToast);
+    }
+
+    function toggleDonationModal() {
+      document.getElementById('donationModal').classList.toggle('hidden');
+    }
+
+    function copyWalletAddress() {
+      navigator.clipboard.writeText(WALLET_ADDRESS);
+      showToast(translations[currentLang].walletCopied);
+    }
+
+    function openSubmitModal() {
+      document.getElementById('submitModal').classList.remove('hidden');
+    }
+
+    function closeSubmitModal() {
+      document.getElementById('submitModal').classList.add('hidden');
+    }
+
+    function handleFormSubmission(e) {
+      e.preventDefault();
+      const phrase = document.getElementById('subPhrase').value.trim();
+      const category = document.getElementById('subCategory').value;
+      const tone = document.getElementById('subTone').value;
+      if (!phrase) return;
+
+      vaultItems.unshift({
+        id: 'user-' + Date.now(),
+        lang: currentLang,
+        category: category,
+        situation: "Внесок користувача",
+        phrase: phrase,
+        tone: tone,
+        upvotes: 1,
+        downvotes: 0,
+        createdAt: Date.now(),
+        isAiSourced: false
+      });
+
+      closeSubmitModal();
+      renderFeed();
+      showToast(currentLang === 'uk' ? "Ваш дотеп додано!" : "Added!");
+    }
+
+    function showToast(message, isAlert = false) {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      const bgColor = isAlert ? 'bg-rose-950/95 border-rose-600 text-rose-200' : 'bg-slate-900/95 border-purple-500/50 text-slate-100';
+      toast.className = `pointer-events-auto flex items-center space-x-2.5 px-4 py-3 rounded-xl border shadow-2xl text-xs font-medium backdrop-blur-md animate-toast ${bgColor}`;
+      toast.innerHTML = `<i class="ph-bold ph-sparkle text-purple-400 text-base"></i><span>${message}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      updateLocalizedStrings();
+      renderCategoryChips();
+      renderFeed();
+    });
+  </script>
+</body>
+</html>
